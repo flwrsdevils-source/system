@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image.png" href="z:\rafael\apps\system\icon.ico"
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Portaria</title>
+    <style>
+        :root {
+            --primary: #1c1c1c;
+            --secondary: #27ae60;
+            --accent: #27ae60;
+            --light: #ecf0f1;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--light); margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        h1 { color: var(--primary); text-align: center; border-bottom: 2px solid var(--secondary); padding-bottom: 10px; }
+        
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; }
+        .tab-btn { padding: 10px 20px; cursor: pointer; border: none; background: #ddd; border-radius: 5px; font-weight: bold; transition: 0.3s; }
+        .tab-btn.active { background: var(--secondary); color: white; }
+
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+
+        .form-group { margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
+        input, select, button { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { cursor: pointer; background: var(--primary); color: white; border: none; transition: 0.3s; }
+        button:hover { opacity: 0.9; }
+        .btn-add { background: var(--secondary); }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: var(--primary); color: white; }
+        tr:nth-child(even) { background: #f9f9f9; }
+
+        .summary { display: flex; gap: 20px; margin-bottom: 20px; background: #e8f4fd; padding: 15px; border-radius: 5px; }
+    </style>
+</head>
+    <img src="logo.png" alt="z:\rafael\apps\system\logo.png">
+
+<body>
+
+<div class="container">
+    <h1>Sistema Portaria</h1>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="openTab(event, 'visitas')">Visitas/Reuniões</button>
+        <button class="tab-btn" onclick="openTab(event, 'refeicoes')">Refeições Entre-Safra</button>
+        <button class="tab-btn" onclick="openTab(event, 'marmitas')">Venda de Marmitas</button>
+    </div>
+
+    <div id="visitas" class="content-section active">
+        <h3>Registro de Visitantes</h3>
+        <div class="form-group">
+            <input type="text" id="vis-nome" 
+placeholder="Visitante">
+            <input type="text" id="vis-empresa" placeholder="Empresa">
+            <input type="text" id="vis-assunto" placeholder="Assunto/Reunião">
+            <button class="btn-add" onclick="salvarVisita()">Registrar Entrada</button>
+        </div>
+        <table id="tabelaVisitas">
+            <thead>
+                <tr><th>Data/Hora</th><th>Visitante</th><th>Empresa</th><th>Assunto</th><th>Ação</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div id="refeicoes" class="content-section">
+        <h3>Contagem de Refeições</h3>
+        <div class="form-group">
+            <select id="ref-setor">
+                <option value="AGRÍCOLA">Agrícola</option>
+                <option value="ASSOCIAÇÃO">Associação</option>
+                <option value="INDÚSTRIA">Indústria</option>
+                <option value="SR. ANTÔNIO">Sr. Antônio</option>
+            </select>
+            <input type="number" id="ref-qtd" placeholder="Quantidade" min="1">
+            <button class="btn-add" onclick="salvarRefeicao()">Registrar Refeições</button>
+        </div>
+        <table id="tabelaRefeicoes">
+            <thead>
+                <tr><th>Data</th><th>Setor</th><th>Qtd</th><th>Ação</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div id="marmitas" class="content-section">
+        <h3>Venda de Marmitas</h3>
+        <div class="form-group">
+            <input type="text" id="mar-empresa" placeholder="Empresa">
+            <input type="number" id="mar-qtd" placeholder="Quantidade" min="1">
+            <input type="number" id="mar-valor" placeholder="Valor" step="0.01">
+            <button class="btn-add" onclick="salvarMarmita()">Registrar Venda</button>
+        </div>
+        <table id="tabelaMarmitas">
+            <thead>
+                <tr><th>Data</th><th>Empresa</th><th>Qtd</th><th>Valor</th><th>Ação</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Navegação entre abas
+    function openTab(evt, tabName) {
+        let content = document.getElementsByClassName("content-section");
+        for (let i = 0; i < content.length; i++) content[i].style.display = "none";
+        let buttons = document.getElementsByClassName("tab-btn");
+        for (let i = 0; i < buttons.length; i++) buttons[i].className = buttons[i].className.replace(" active", "");
+        document.getElementById(tabName).style.display = "block";
+        evt.currentTarget.className += " active";
+    }
+
+    // Funções de Banco de Dados (LocalStorage)
+    function obterDados(chave) {
+        return JSON.parse(localStorage.getItem(chave)) || [];
+    }
+
+    function salvarDados(chave, dados) {
+        localStorage.setItem(chave, JSON.stringify(dados));
+        renderizarTabelas();
+    }
+
+    function deletarItem(chave, index) {
+        if(confirm("Deseja excluir este registro?")) {
+            let dados = obterDados(chave);
+            dados.splice(index, 1);
+            salvarDados(chave, dados);
+        }
+    }
+
+    // Ações de Salvamento
+    function salvarVisita() {
+        const nome = document.getElementById('vis-nome').value;
+        const empresa = document.getElementById('vis-empresa').value;
+        const assunto = document.getElementById('vis-assunto').value;
+        if(!nome || !empresa) return alert("Preencha os campos!");
+
+        let dados = obterDados('visitas');
+        dados.push({ data: new Date().toLocaleString(), nome, empresa, assunto });
+        salvarDados('visitas', dados);
+        document.querySelectorAll('#visitas input').forEach(i => i.value = '');
+    }
+
+    function salvarRefeicao() {
+        const setor = document.getElementById('ref-setor').value;
+        const qtd = document.getElementById('ref-qtd').value;
+        if(!qtd) return alert("Informe a quantidade!");
+
+        let dados = obterDados('refeicoes');
+        dados.push({ data: new Date().toLocaleDateString(), setor, qtd });
+        salvarDados('refeicoes', dados);
+        document.getElementById('ref-qtd').value = '';
+    }
+
+    function salvarMarmita() {
+        const empresa = document.getElementById('mar-empresa').value;
+        const qtd = document.getElementById('mar-qtd').value;
+        const valor = document.getElementById('mar-valor').value;
+        if(!empresa || !qtd) return alert("Preencha os campos!");
+
+        let dados = obterDados('marmitas');
+        dados.push({ data: new Date().toLocaleDateString(), empresa, qtd, valor });
+        salvarDados('marmitas', dados);
+        document.querySelectorAll('#marmitas input').forEach(i => i.value = '');
+    }
+
+    // Renderização
+    function renderizarTabelas() {
+        // Render Visitas
+        const vis = obterDados('visitas');
+        document.querySelector('#tabelaVisitas tbody').innerHTML = vis.map((item, i) => `
+            <tr><td>${item.data}</td><td>${item.nome}</td><td>${item.empresa}</td><td>${item.assunto}</td>
+            <td><button onclick="deletarItem('visitas', ${i})">X</button></td></tr>`).join('');
+
+        // Render Refeições
+        const ref = obterDados('refeicoes');
+        document.querySelector('#tabelaRefeicoes tbody').innerHTML = ref.map((item, i) => `
+            <tr><td>${item.data}</td><td>${item.setor}</td><td>${item.qtd}</td>
+            <td><button onclick="deletarItem('refeicoes', ${i})">X</button></td></tr>`).join('');
+
+        // Render Marmitas
+        const mar = obterDados('marmitas');
+        document.querySelector('#tabelaMarmitas tbody').innerHTML = mar.map((item, i) => `
+            <tr><td>${item.data}</td><td>${item.empresa}</td><td>${item.qtd}</td><td>R$ ${item.valor}</td>
+            <td><button onclick="deletarItem('marmitas', ${i})">X</button></td></tr>`).join('');
+    }
+
+    // Carregar ao abrir
+    window.onload = renderizarTabelas;
+</script>
+
+</body>
+</html>
